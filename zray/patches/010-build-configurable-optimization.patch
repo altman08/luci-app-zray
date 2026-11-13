@@ -1,0 +1,22 @@
+Subject: [PATCH] build: honor explicit optimization modes
+
+Keep Debug and bare --release defaults while allowing --release=fast/safe/small
+and an explicit -Doptimize override.
+
+--- a/build.zig
++++ b/build.zig
+@@ -3,7 +3,13 @@ const std = @import("std");
+ pub fn build(b: *std.Build) void {
+     const target = b.standardTargetOptions(.{});
+     const dynamic = b.option(bool, "dynamic", "Dynamically link the system C library") orelse false;
+-    const optimize = b.standardOptimizeOption(.{ .preferred_optimize_mode = .small });
++    // Keep bare --release small, while honoring an explicitly selected mode.
++    const optimize = b.option(std.builtin.Optimize, "optimize", "Override optimization mode") orelse
++        b.standardOptimizeOption(.{ .preferred_optimize_mode = switch (b.graph.release_mode) {
++            .fast => .fast,
++            .safe => .safe,
++            .off, .any, .small => .small,
++        } });
+ 
+     const root_mod = b.createModule(.{
+         .root_source_file = b.path("src/main.zig"),

@@ -1,0 +1,7 @@
+artifacts/
+bin/
+__pycache__/
+.ci-feed/
+.ci-artifacts/
+.ci-go127/
+release/

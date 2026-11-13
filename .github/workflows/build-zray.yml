@@ -1,0 +1,248 @@
+name: Build and release PassWall and cores
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag (leave empty to build artifacts only)
+        required: false
+        type: string
+      prerelease:
+        description: Mark as prerelease
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zray-${{ github.workflow }}-${{ inputs.tag || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/source.test.mjs
+      - run: bash -n tools/build-openwrt.sh tools/collect-packages.sh
+
+  source:
+    name: Resolve zray source
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Resolve pinned release tag and verify source archive
+        if: github.event_name == 'workflow_dispatch'
+        run: python3 tools/update-source.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zray-source-recipe
+          path: |
+            zray/Makefile
+            zray/source-info.json
+          if-no-files-found: error
+
+  openwrt-packages:
+    needs: [checks, source]
+    name: OpenWrt ${{ matrix.sdk }}-${{ matrix.arch }} (${{ matrix.variant }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [full, lite]
+        arch:
+          - x86_64
+          - aarch64_cortex-a53
+          - aarch64_cortex-a72
+          - aarch64_generic
+          - arm_cortex-a7
+          - arm_cortex-a9
+        sdk:
+          - '25.12.5'
+
+    steps:
+      - name: Validate release tag
+        if: inputs.tag != ''
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          git check-ref-format "refs/tags/${TAG}"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        timeout-minutes: 5
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Load resolved release source
+        uses: actions/download-artifact@v4
+        with:
+          name: zray-source-recipe
+          path: zray
+
+      - name: Checkout Go 1.27 feed
+        uses: actions/checkout@v4
+        with:
+          repository: altman08/immortalwrt-packages
+          ref: dev
+          path: .ci-go127
+          persist-credentials: false
+          sparse-checkout: lang/golang
+
+      - name: Build core packages (${{ matrix.variant }})
+        timeout-minutes: 105
+        env:
+          SDK_IMAGE: ghcr.io/openwrt/sdk:${{ matrix.arch }}-${{ matrix.sdk }}
+        run: |
+          set -euo pipefail
+          mkdir -p .ci-feed .ci-artifacts
+          cp -a zray xray-core .ci-feed/
+          sudo chown 1000:1000 .ci-artifacts
+          trap 'sudo chown -R "$(id -u):$(id -g)" .ci-artifacts' EXIT
+          docker run --rm --entrypoint /bin/bash \
+            -v "$PWD/.ci-feed:/feed:ro" \
+            -v "$PWD/tools:/ci-tools:ro" \
+            -v "$PWD/.ci-go127:/ci-go127:ro" \
+            -v "$PWD/.ci-artifacts:/artifacts" \
+            "$SDK_IMAGE" /ci-tools/build-openwrt.sh cores '${{ matrix.variant }}'
+
+      - name: Collect core packages
+        run: bash tools/collect-packages.sh cores '${{ matrix.sdk }}' '${{ matrix.arch }}' '${{ matrix.variant }}'
+
+      - name: Upload OpenWrt packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: zray-release-openwrt-${{ matrix.sdk }}-${{ matrix.arch }}-${{ matrix.variant }}
+          path: release/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zray-build-logs-${{ matrix.sdk }}-${{ matrix.arch }}-${{ matrix.variant }}
+          path: .ci-artifacts/logs/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  luci:
+    name: LuCI and translations (all, SDK ${{ matrix.sdk }})
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ['25.12.5']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build architecture-independent packages once
+        timeout-minutes: 75
+        env:
+          SDK_IMAGE: ghcr.io/openwrt/sdk:x86_64-${{ matrix.sdk }}
+        run: |
+          set -euo pipefail
+          mkdir -p .ci-feed .ci-artifacts
+          cp -a luci-app-passwall .ci-feed/
+          sudo chown 1000:1000 .ci-artifacts
+          trap 'sudo chown -R "$(id -u):$(id -g)" .ci-artifacts' EXIT
+          docker run --rm --entrypoint /bin/bash \
+            -v "$PWD/.ci-feed:/feed:ro" \
+            -v "$PWD/tools:/ci-tools:ro" \
+            -v "$PWD/.ci-artifacts:/artifacts" \
+            "$SDK_IMAGE" /ci-tools/build-openwrt.sh luci
+      - name: Collect LuCI and Chinese translation
+        run: bash tools/collect-packages.sh luci '${{ matrix.sdk }}' all
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zray-release-luci-${{ matrix.sdk }}-all
+          path: release/*.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: luci-build-logs-${{ matrix.sdk }}
+          path: .ci-artifacts/logs/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  release:
+    if: github.event_name == 'workflow_dispatch' && inputs.tag != ''
+    name: Publish OpenWrt packages
+    needs: [openwrt-packages, luci]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download OpenWrt packages
+        uses: actions/download-artifact@v4
+        timeout-minutes: 5
+        with:
+          pattern: zray-release-*
+          path: release
+          merge-multiple: true
+
+      - name: Create release and upload packages
+        timeout-minutes: 12
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
+          PRERELEASE: ${{ inputs.prerelease }}
+          TARGET: ${{ github.sha }}
+          GH_PROMPT_DISABLED: '1'
+        run: |
+          set -euo pipefail
+          retry() {
+            local attempt
+            for attempt in 1 2 3; do
+              if timeout --kill-after=5s 90s "$@"; then
+                return 0
+              fi
+              if [ "$attempt" -lt 3 ]; then
+                sleep $((attempt * 5))
+              fi
+            done
+            return 1
+          }
+          # A failed lookup can also mean a network error. Check again on
+          # retries so a completed-but-timed-out creation remains idempotent.
+          ensure_release() {
+            if gh release view "$TAG" --repo "$REPOSITORY" >/dev/null 2>&1; then
+              return 0
+            fi
+            local args=(
+              "$TAG"
+              --repo "$REPOSITORY"
+              --target "$TARGET"
+              --title "$TAG"
+              --generate-notes
+            )
+            if [ "$PRERELEASE" = true ]; then
+              args+=(--prerelease)
+            fi
+            gh release create "${args[@]}"
+          }
+          export -f ensure_release
+          retry bash -c ensure_release
+          retry gh release upload "$TAG" release/*.apk --repo "$REPOSITORY" --clobber
