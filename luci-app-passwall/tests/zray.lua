@@ -95,7 +95,7 @@ current_node = node({
 	zray_crypto_min_bytes = "8192", zray_crypto_max_bytes = "16384"
 })
 local custom = zray.gen_config({node = "test", local_socks_port = "18900"})
-check(custom.workers == 4 and custom.max_connections == 64)
+check(custom.workers == nil and custom.max_connections == 64)
 check(custom.handshake_timeout_s == 20 and custom.connect_timeout_s == 8 and custom.idle_timeout_s == 900)
 check(custom.sock_buf == 65536 and custom.stats_interval_s == 0)
 check(custom.bootstrap_dns == "[::1]:5353")

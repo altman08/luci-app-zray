@@ -39,9 +39,9 @@ Zray 是使用 Zig 编写的轻量级 Linux 代理客户端，面向 CPU、内�
 支持 VLESS、REALITY 和 XTLS Vision。Vision 可在满足条件时进入直接转发阶段，减少双重加密开销。
 Zray 是独立核心，不是 Xray 的精简构建。
 
-本源的 `zray/` 提供 OpenWrt 配方、源码锁定信息和构建补丁：
+本源的 `zray/` 提供 OpenWrt 配方和源码锁定信息：
 
-- 源码来自 `yunnysunny/zray`，固定使用 `v0.5.0`，具体提交和 SHA256 记录在 [source-info.json](zray/source-info.json)。
+- 源码来自 `yunnysunny/zray`，固定使用 `v0.6.0`，具体提交和 SHA256 记录在 [source-info.json](zray/source-info.json)。
 - 使用 Zig 0.17.0、ReleaseFast 优化，动态链接系统 musl。
 - 支持 x86_64 / aarch64 构建主机，以及 x86_64、aarch64、ARMv7、MIPS32r2（大端/小端）目标。
 - Zray 使用 MIT 许可证；Xray 使用 MPL-2.0 / BSD-3-Clause 许可证。
@@ -91,7 +91,7 @@ Xray 配方通过 `feeds/packages/lang/golang/golang-package.mk` 加载 Go 构�
   `aarch64_generic`、`arm_cortex-a7`、`arm_cortex-a9` 的 APK。
 - 每种架构分别构建 Xray `full` / `lite`；Zray 只在 `full` 任务中编译一次，Zray 本身不区分这两个版本。
 - 按设备架构下载软件包，并根据所需功能选择文件名带 `_full_` 或 `_lite_` 的 Xray 包。
-- 默认仅上传 Actions artifacts；手动填写 `tag`（例如 `zray-v0.5.0`）才在所有构建成功后发布 Release，
+- 默认仅上传 Actions artifacts；手动填写 `tag`（例如 `zray-v0.6.0`）才在所有构建成功后发布 Release，
   `prerelease` 控制是否标为预发布。发布附件为 `.apk` 软件包，不提供独立二进制或 IPK。
 
 本地构建脚本检查：

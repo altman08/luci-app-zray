@@ -1,19 +1,19 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=zray
-PKG_VERSION:=0.5.0
+PKG_VERSION:=0.6.0
 PKG_RELEASE:=1
 PKG_LICENSE:=MIT
 PKG_LICENSE_FILES:=LICENSE
 
 PKG_SOURCE_REPO:=yunnysunny/zray
-PKG_SOURCE_TAG:=v0.5.0
-PKG_SOURCE_VERSION:=c7dcb0b5f672bc3b53db957ce11adae16789b911
+PKG_SOURCE_TAG:=v0.6.0
+PKG_SOURCE_VERSION:=055ad151c4f3bbfdf97d477178ddfd184c30bc22
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_SOURCE_VERSION).tar.gz
 PKG_SOURCE_URL:=https://codeload.github.com/$(PKG_SOURCE_REPO)/tar.gz
 PKG_SOURCE_URL_FILE:=$(PKG_SOURCE_VERSION)
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_SOURCE_VERSION)
-PKG_HASH:=0e3354c42be5e9e77975472f3a3fc41ebafa0d68153c00d9fc233b04ecd69700
+PKG_HASH:=5de883b7e13f3fbf185cbeeafce2e0777eef452b03f52f0bdfd80a430343c165
 
 PKG_BUILD_PARALLEL:=1
 # Link the OpenWrt executable against the system musl shared library.
@@ -76,7 +76,7 @@ define Build/Compile
 	$(if $(ZIG_TARGET_$(ARCH)),,$(error Unsupported Zray target: $(ARCH)))
 	cd $(PKG_BUILD_DIR) && \
 		ZIG_GLOBAL_CACHE_DIR=$(PKG_BUILD_DIR)/.zig-global-cache \
-		$(ZIG_DIR)/zig build --release=fast \
+		$(ZIG_DIR)/zig build -Doptimize=fast \
 		-Dtarget=$(ZIG_TARGET_$(ARCH)) -Dcpu=$(ZIG_CPU_$(ARCH)) \
 		-Ddynamic=true \
 		-j2 \

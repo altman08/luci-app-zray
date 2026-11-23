@@ -72,7 +72,7 @@ local model = assert(loadfile("luasrc/model/cbi/passwall/client/type/7_zray.lua"
 setfenv(model, model_env)(m, s1)
 
 local advanced = s1.tabs.advanced.childs
-assert(#advanced == 11, "missing advanced controls")
+assert(#advanced == 10, "missing advanced controls")
 assert(s1.tabs.basic.childs[1] == kind, "node type must stay accessible")
 local seen = {}
 for tab, data in pairs(s1.tabs) do
@@ -84,10 +84,11 @@ for tab, data in pairs(s1.tabs) do
 end
 for _, option in ipairs(s1.children) do assert(seen[option], "field lost from both tabs") end
 
+assert(not s1.fields.zray_workers, "removed workers control must not be exposed")
 assert(not s1.fields.zray_crypto_async, "removed async control must not be exposed")
 
 local values = {
-	workers = "4", max_connections = "64", handshake_timeout_s = "20", connect_timeout_s = "8",
+	max_connections = "64", handshake_timeout_s = "20", connect_timeout_s = "8",
 	idle_timeout_s = "900", sock_buf = "65536", stats_interval_s = "0",
 	bootstrap_dns = "223.5.5.5:53", crypto_backend = "afalg",
 	crypto_min_bytes = "8192", crypto_max_bytes = "16384"
@@ -100,7 +101,7 @@ for _, option in ipairs(advanced) do
 	posted[option.option] = values[name]
 end
 local runtime = assert(zray.runtime_config(stored))
-assert(runtime.workers == 4 and runtime.crypto_backend == "afalg")
+assert(runtime.workers == nil and runtime.crypto_backend == "afalg")
 assert(runtime.crypto_min_bytes == 8192 and runtime.crypto_max_bytes == 16384)
 
 local min, max = s1.fields.zray_crypto_min_bytes, s1.fields.zray_crypto_max_bytes

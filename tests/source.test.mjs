@@ -16,7 +16,7 @@ test(`source updater locks ${pinnedRelease ? 'the configured release' : 'an expl
         const recipe = fs.readFileSync(new URL('../zray/Makefile', import.meta.url), 'utf8');
         fs.writeFileSync(path.join(tmp, 'zray/Makefile'), recipe);
         fs.copyFileSync(new URL('../tools/update-source.py', import.meta.url), path.join(tmp, 'tools/update-source.py'));
-        fs.writeFileSync(path.join(tmp, 'zray-' + commit, 'build.zig.zon'), '.{ .version = "0.5.0" }');
+        fs.writeFileSync(path.join(tmp, 'zray-' + commit, 'build.zig.zon'), '.{ .version = "0.6.0" }');
         const archive = path.join(tmp, 'source.tar.gz');
         execFileSync('tar', ['-czf', archive, '-C', tmp, 'zray-' + commit]);
         fs.writeFileSync(path.join(tmp, 'mock-bin/curl'), `#!/bin/sh
@@ -29,9 +29,9 @@ esac
             env: { ...process.env, PATH: path.join(tmp, 'mock-bin') + ':' + process.env.PATH, ZRAY_TEST_ARCHIVE: archive, ZRAY_TEST_COMMIT: commit }
         });
         const info = JSON.parse(fs.readFileSync(path.join(tmp, 'zray/source-info.json')));
-        assert.equal(info.version, pinnedRelease ? '0.5.0' : '0.5.0~ca0df66369b0');
+        assert.equal(info.version, pinnedRelease ? '0.6.0' : '0.6.0~ca0df66369b0');
         assert.equal(info.repository, 'yunnysunny/zray');
-        assert.equal(info.tag, 'v0.5.0');
+        assert.equal(info.tag, 'v0.6.0');
         assert.equal(info.commit, commit);
         assert.equal(info.sha256, createHash('sha256').update(fs.readFileSync(archive)).digest('hex'));
         const generated = fs.readFileSync(path.join(tmp, 'zray/Makefile'), 'utf8');

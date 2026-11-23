@@ -95,8 +95,7 @@ local function number_option(name, title, description)
 	return option
 end
 
-number_option("workers", translate("Network workers"), translate("0 selects automatically (up to 4); 1 uses one worker; 2-16 requests that many workers. Limited by the connection count. A single connection is not split across workers."))
-number_option("max_connections", translate("Maximum connections"), translate("Total connection slots per Zray process, shared by all workers. More slots reserve more memory at startup."))
+number_option("max_connections", translate("Maximum connections"), translate("Total connection slots per Zray process. More slots reserve more memory at startup."))
 number_option("handshake_timeout_s", translate("Handshake timeout (seconds)"))
 number_option("connect_timeout_s", translate("Connect timeout (seconds)"), translate("Deadline for one upstream connection attempt; at least 1 second."))
 number_option("idle_timeout_s", translate("Idle timeout (seconds)"), translate("Close connections that have no traffic for this long. 0 does not disable the timeout."))

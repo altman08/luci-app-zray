@@ -41,7 +41,7 @@ tar -xJf "$zig_archive" --strip-components=1 -C "$build_dir/zig"
         patch --batch --forward -p1 < "$source_patch"
     done
     export ZIG_GLOBAL_CACHE_DIR="$build_dir/cache"
-    "$build_dir/zig/zig" build --release=fast -Dtarget="$ZRAY_TARGET" -Dcpu="$ZRAY_CPU" -j2 -p out
+    "$build_dir/zig/zig" build -Doptimize=fast -Dtarget="$ZRAY_TARGET" -Dcpu="$ZRAY_CPU" -j2 -p out
 )
 output="zray-${version}_${ZRAY_ARCH}"
 install -m755 "$build_dir/source/out/bin/zray" "artifacts/$output"

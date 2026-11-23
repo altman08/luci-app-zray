@@ -2094,17 +2094,11 @@ msgstr "高级参数"
 msgid "These settings apply to each Zray process started for this node. Save and apply to restart with the new values."
 msgstr "这些设置对该节点启动的每个 Zray 进程生效，保存并应用后重启生效。"
 
-msgid "Network workers"
-msgstr "网络工作线程数"
-
-msgid "0 selects automatically (up to 4); 1 uses one worker; 2-16 requests that many workers. Limited by the connection count. A single connection is not split across workers."
-msgstr "0 为自动选择（最多 4 个），1 为单线程，2–16 为指定线程数，实际数量受连接数限制。单个连接不会拆分到多个线程。"
-
 msgid "Maximum connections"
 msgstr "最大连接数"
 
-msgid "Total connection slots per Zray process, shared by all workers. More slots reserve more memory at startup."
-msgstr "每个 Zray 进程的连接槽位总数，由所有工作线程共享。槽位越多，启动时预留的内存越多。"
+msgid "Total connection slots per Zray process. More slots reserve more memory at startup."
+msgstr "每个 Zray 进程的连接槽位总数。槽位越多，启动时预留的内存越多。"
 
 msgid "Handshake timeout (seconds)"
 msgstr "握手超时（秒）"

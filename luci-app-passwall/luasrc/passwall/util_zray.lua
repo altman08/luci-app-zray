@@ -54,7 +54,6 @@ end
 -- Defaults match feed/zray/src/main.zig; JSON needs numbers and booleans,
 -- while UCI stores strings. Bound seconds to u32 to avoid unsafe u64 arithmetic.
 runtime_numbers = {
-	{"workers", 1, 0, 16},
 	{"max_connections", 128, 1, 4294967295},
 	{"handshake_timeout_s", 15, 0, 4294967295},
 	{"connect_timeout_s", 5, 1, 4294967295},
